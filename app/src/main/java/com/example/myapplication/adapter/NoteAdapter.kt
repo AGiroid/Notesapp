@@ -12,7 +12,7 @@ import com.example.myapplication.dataclass.Note
 
 class NoteAdapter(
     val context: Context,
-    val datalist: ArrayList<Note>,
+    val datalist:ArrayList<Note>,
     val noteClickInterface: NoteClickInterface
 ) : RecyclerView.Adapter<NoteAdapter.ViewHolder>() {
 
@@ -35,16 +35,15 @@ class NoteAdapter(
         holder.tvdescription.text = datalist[position].noteDescription
         holder.tvtime.text = datalist[position].timeStamp
         holder.deletebtn.setOnClickListener {
-            noteClickInterface.onDeleteIconClick(position, datalist[position])
+            noteClickInterface.onDeleteIconClick(position,datalist[position])
 
         }
         holder.editbtn.setOnClickListener {
-            noteClickInterface.onEditIconClick(position, datalist[position])
+            noteClickInterface.onEditIconClick(position,datalist[position])
 
         }
     }
-
-    fun updatelist(newlist: List<Note>) {
+    fun updatelist(newlist:List<Note>){
         datalist.clear()
         datalist.addAll(newlist)
         notifyDataSetChanged()
@@ -55,7 +54,7 @@ class NoteAdapter(
     }
 
     interface NoteClickInterface {
-        fun onEditIconClick(position: Int, note: Note)
-        fun onDeleteIconClick(position: Int, note: Note)
+        fun onEditIconClick(position:Int,note: Note)
+        fun onDeleteIconClick(position:Int,note: Note)
     }
 }

@@ -6,6 +6,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import com.example.myapplication.dataclass.Note
+import java.util.UUID
 
 class DBHelper(context: Context, factory: SQLiteDatabase.CursorFactory?) : SQLiteOpenHelper(
     context, DATABASE_NAME, factory, DATABASE_VERSION
@@ -70,7 +71,7 @@ class DBHelper(context: Context, factory: SQLiteDatabase.CursorFactory?) : SQLit
                 val topic = cursor.getString(cursor.getColumnIndex(Topic_COl))
                 val description = cursor.getString(cursor.getColumnIndex(Description_COL))
                 val time = cursor.getString(cursor.getColumnIndex(Time_COL))
-                val dataModel = Note(topic, description, time)
+                val dataModel = Note(UUID.randomUUID().toString(),topic, description, time)
                 dataList.add(dataModel)
             } while (cursor.moveToNext())
         }

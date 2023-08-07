@@ -2,6 +2,7 @@ package com.example.myapplication
 
 import android.app.Dialog
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -29,12 +30,13 @@ class MainActivity : AppCompatActivity(), NoteAdapter.NoteClickInterface {
         Dialog(this@MainActivity, R.style.DialogCustomTheme)
     }
 
-    lateinit var mainDao: NotesDao
+    //    lateinit var db: DBHelper
     var datalist = arrayListOf<Note>()
+    lateinit var db: NotesDao
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val database = NoteDatabase.getDatabase(applicationContext)
-        mainDao = database.getNotesDao()
+        db = NoteDatabase.getDatabase(this).getNotesDao()
+        datalist.addAll(db.getAllNotes())
         Add_Note_Dialog.setContentView(R.layout.add_dialog)
         Add_Note_Dialog.window!!.setLayout(
             LinearLayout.LayoutParams.MATCH_PARENT,
@@ -45,45 +47,46 @@ class MainActivity : AppCompatActivity(), NoteAdapter.NoteClickInterface {
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         )
-//        db = DBHelper(this, null)  (SQLite database)
-        val adapter = NoteAdapter(this, datalist, this)
+//        db = DBHelper(this, null)
         val topic = Add_Note_Dialog.findViewById<EditText>(R.id.edTopic)
         val description = Add_Note_Dialog.findViewById<EditText>(R.id.edDescription)
-        val btnadd = Add_Note_Dialog.findViewById<Button>(R.id.btnAdd)
-
-
+        val btnAdd = Add_Note_Dialog.findViewById<Button>(R.id.btnAdd)
 
         mainBinding.btnAddNote.setOnClickListener {
             Add_Note_Dialog.show()
             topic.text.clear()
             description.text.clear()
         }
-//        datalist = db.getData() (get data sqlite)
-        mainBinding.rvNotelist.adapter = NoteAdapter(this@MainActivity, datalist, this)
-        mainDao.getAllNotes().observe(this) { list ->
-            list?.let { adapter.updatelist(it) }
-        }
-        btnadd.setOnClickListener {
 
+
+//        datalist = db.getData()
+
+        mainBinding.rvNotelist.adapter = NoteAdapter(this@MainActivity, datalist, this)
+        btnAdd.setOnClickListener {
             if (topic.text.isEmpty()) {
-                Toast.makeText(this@MainActivity, getString(R.string.topic), Toast.LENGTH_SHORT)
+                Toast.makeText(this@MainActivity, "Please enter the topic", Toast.LENGTH_SHORT)
                     .show()
             } else if (description.text.isEmpty()) {
                 Toast.makeText(
-                    this@MainActivity, getString(R.string.description), Toast.LENGTH_SHORT
+                    this@MainActivity,
+                    "Please enter the Description",
+                    Toast.LENGTH_SHORT
                 ).show()
             } else {
                 if (topic.text.isNotEmpty() && description.text.isNotEmpty()) {
                     val sdf = SimpleDateFormat(getString(R.string.timeformate))
                     val currentDate: String = sdf.format(Date())
-                    val note = Note(topic.text.toString(), description.text.toString(), currentDate)
-                    lifecycleScope.launch {
-                        mainDao.insert(note)
-                        datalist.add(note)
-                        mainBinding.rvNotelist.adapter?.notifyDataSetChanged()
-                    }
-//                    db.addNote(note)(Insert)
+                    val note = Note(
+                        UUID.randomUUID().toString(),
+                        topic.text.toString(),
+                        description.text.toString(),
+                        currentDate
+                    )
+//                    db.addNote(note)
+                    lifecycleScope.launch { db.insert(note) }
 
+                    datalist.add(note)
+                    mainBinding.rvNotelist.adapter!!.notifyDataSetChanged()
                     Toast.makeText(this, getString(R.string.inserted), Toast.LENGTH_SHORT).show()
                 } else {
                     Toast.makeText(this, getString(R.string.error), Toast.LENGTH_SHORT).show()
@@ -94,59 +97,54 @@ class MainActivity : AppCompatActivity(), NoteAdapter.NoteClickInterface {
             Add_Note_Dialog.dismiss()
 
         }
-
     }
 
     override fun onEditIconClick(position: Int, note: Note) {
-        val edittopic = Edit_Note_Dialog.findViewById<EditText>(R.id.edTopic)
-        val editdescription = Edit_Note_Dialog.findViewById<EditText>(R.id.edDescription)
-        val btnedit = Edit_Note_Dialog.findViewById<Button>(R.id.btnEdit)
+//        db.updateNote(note)
         Edit_Note_Dialog.show()
-        btnedit.setOnClickListener {
-            if (edittopic.text.isEmpty()) {
-                Toast.makeText(this@MainActivity, getString(R.string.topic), Toast.LENGTH_SHORT)
+        val modify_topic = Edit_Note_Dialog.findViewById<EditText>(R.id.edTopic)
+        val modify_description = Edit_Note_Dialog.findViewById<EditText>(R.id.edDescription)
+        val btnUpdate = Edit_Note_Dialog.findViewById<Button>(R.id.btnUpdate)
+        modify_topic.setText(note.noteTitle)
+        modify_description.setText(note.noteDescription)
+        btnUpdate.setOnClickListener {
+            if (modify_topic.text.isEmpty()) {
+                Toast.makeText(this@MainActivity, "Please enter the topic", Toast.LENGTH_SHORT)
                     .show()
-            } else if (editdescription.text.isEmpty()) {
+            } else if (modify_description.text.isEmpty()) {
                 Toast.makeText(
-                    this@MainActivity, getString(R.string.description), Toast.LENGTH_SHORT
+                    this@MainActivity,
+                    "Please enter the Description",
+                    Toast.LENGTH_SHORT
                 ).show()
             } else {
-                if (edittopic.text.isNotEmpty() && editdescription.text.isNotEmpty()) {
-                    val sdf = SimpleDateFormat(getString(R.string.timeformate))
-                    val currentDate: String = sdf.format(Date())
-                    val note = Note(
-                        edittopic.text.toString(),
-                        editdescription.text.toString(),
-                        currentDate
-                    )
-                    lifecycleScope.launch {
-                        mainDao.update(note)
-                        datalist[position] = note
-                        mainBinding.rvNotelist.adapter?.notifyItemChanged(position)
-                    }
-//                    db.updateNote(note)(update)
-
-                    Toast.makeText(this, getString(R.string.note_update), Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this, getString(R.string.error), Toast.LENGTH_SHORT).show()
-                }
-
-
+                val sdf = SimpleDateFormat(getString(R.string.timeformate))
+                val currentDate: String = sdf.format(Date())
+                val modifynote = Note(
+                    note.id,
+                    modify_topic.text.toString(),
+                    modify_description.text.toString(),
+                    currentDate
+                )
+                lifecycleScope.launch { db.update(modifynote) }
+                datalist[position] = modifynote
+                mainBinding.rvNotelist.adapter!!.notifyItemChanged(position)
+                Toast.makeText(this, getString(R.string.note_update), Toast.LENGTH_SHORT).show()
             }
             Edit_Note_Dialog.dismiss()
         }
+
+
     }
 
     override fun onDeleteIconClick(position: Int, note: Note) {
-//        db.deleteNote(note)(Delete)
+//        db.deleteNote(note)
         lifecycleScope.launch {
-            mainDao.delete(note)
-            datalist.removeAt(position)
-            mainBinding.rvNotelist.adapter?.notifyItemRemoved(position)
-
+            db.delete(note)
         }
-        Toast.makeText(this, getString(R.string.Remove), Toast.LENGTH_SHORT).show()
+        datalist.removeAt(position)
+        mainBinding.rvNotelist.adapter!!.notifyItemRemoved(position)
+
+        Log.d("error", note.noteDescription)
     }
-
-
 }
